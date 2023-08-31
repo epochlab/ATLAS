@@ -1,0 +1,88 @@
+#!/usr/bin/env python3
+
+import numpy as np
+
+class ODESolver:
+    def __init__(self, f):
+        self.f = f
+        self.x, self.t, self.ndim = [], [], []
+       
+    def reset(self, x_start, t_start):
+        if isinstance(x_start, float):
+            x_start = np.array([x_start])
+
+        self.ndim = np.shape(x_start)[0]
+
+        self.x = x_start
+        self.t = t_start
+
+    def euler(self, dt, niter):
+        X = np.zeros([self.ndim, niter])
+        T = np.zeros([niter])
+        
+        X[:,0] = np.copy(self.x)
+        T[0] = np.copy(self.t)
+        
+        for n in range(1, niter):
+            self.x += self.f(self.x, self.t) * dt
+            X[:,n] = np.copy(self.x)
+
+            self.t = self.t + dt
+            T[n] = self.t
+
+        return X, T
+    
+    def midpoint(self, dt, niter):
+        X = np.zeros([self.ndim, niter])
+        T = np.zeros([niter])
+        
+        X[:,0] = np.copy(self.x)
+        T[0] = np.copy(self.t)
+        
+        for n in range(1, niter):
+            x_mp = self.x + self.f(self.x, self.t) * dt/2
+            self.x += self.f(x_mp, self.t + dt/2) * dt
+            X[:,n] = np.copy(self.x)
+
+            self.t = self.t + dt
+            T[n] = np.copy(self.t)
+            
+        return X, T
+    
+    def runge_kutta2(self, dt, niter):
+        X = np.zeros([self.ndim, niter])
+        T = np.zeros([niter])
+        
+        X[:,0] = np.copy(self.x)
+        T[0] = np.copy(self.t)
+
+        for n in range(1, niter):
+            k1 = self.f(self.x, self.t)
+            k2 = self.f(self.x + k1 * dt, self.t + dt)
+            self.x += 0.5 * (k1 + k2) * dt
+            X[:,n] = np.copy(self.x)
+
+            self.t = self.t + dt
+            T[n] = self.t
+            
+        return X, T
+    
+    def runge_kutta4(self, dt, niter):
+        X = np.zeros([self.ndim, niter])
+        T = np.zeros([niter])
+        
+        X[:,0] = np.copy(self.x)
+        T[0] = np.copy(self.t)
+
+        for n in range(1, niter):
+            k1 = self.f(self.x, self.t)
+            k2 = self.f(self.x + k1 * dt/2, self.t + dt/2)
+            k3 = self.f(self.x + k2 * dt/2, self.t + dt/2)
+            k4 = self.f(self.x + k3 * dt, self.t + dt)
+            self.x += 1/6 * (k1 + 2*k2 + 2*k3 + k4) * dt
+            X[:,n] = np.copy(self.x)
+
+            self.t = self.t + dt
+            T[n] = self.t
+            
+        return X, T
