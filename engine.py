@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import numpy as np
+from tqdm import trange
 
 class ODESolver:
     def __init__(self, f):
@@ -16,73 +17,35 @@ class ODESolver:
         self.x = x_start
         self.t = t_start
 
-    def euler(self, dt, niter):
+    def solve(self, dt, niter, solver="rk4"):
         X = np.zeros([self.ndim, niter])
         T = np.zeros([niter])
         
         X[:,0] = np.copy(self.x)
         T[0] = np.copy(self.t)
         
-        for n in range(1, niter):
-            self.x += self.f(self.x, self.t) * dt
-            X[:,n] = np.copy(self.x)
+        for n in trange(1, niter):
+            if solver == "euler":
+                self.x += self.f(self.x, self.t) * dt
 
+            if solver == "midpoint":
+                x_mp = self.x + self.f(self.x, self.t) * dt/2
+                self.x += self.f(x_mp, self.t + dt/2) * dt
+
+            if solver == "rk2":
+                k1 = self.f(self.x, self.t)
+                k2 = self.f(self.x + k1 * dt, self.t + dt)
+                self.x += 0.5 * (k1 + k2) * dt
+
+            if solver == "rk4":
+                k1 = self.f(self.x, self.t)
+                k2 = self.f(self.x + k1 * dt/2, self.t + dt/2)
+                k3 = self.f(self.x + k2 * dt/2, self.t + dt/2)
+                k4 = self.f(self.x + k3 * dt, self.t + dt)
+                self.x += 1/6 * (k1 + 2*k2 + 2*k3 + k4) * dt
+        
+            X[:,n] = np.copy(self.x)
             self.t = self.t + dt
             T[n] = self.t
 
-        return X, T
-    
-    def midpoint(self, dt, niter):
-        X = np.zeros([self.ndim, niter])
-        T = np.zeros([niter])
-        
-        X[:,0] = np.copy(self.x)
-        T[0] = np.copy(self.t)
-        
-        for n in range(1, niter):
-            x_mp = self.x + self.f(self.x, self.t) * dt/2
-            self.x += self.f(x_mp, self.t + dt/2) * dt
-            X[:,n] = np.copy(self.x)
-
-            self.t = self.t + dt
-            T[n] = np.copy(self.t)
-            
-        return X, T
-    
-    def runge_kutta2(self, dt, niter):
-        X = np.zeros([self.ndim, niter])
-        T = np.zeros([niter])
-        
-        X[:,0] = np.copy(self.x)
-        T[0] = np.copy(self.t)
-
-        for n in range(1, niter):
-            k1 = self.f(self.x, self.t)
-            k2 = self.f(self.x + k1 * dt, self.t + dt)
-            self.x += 0.5 * (k1 + k2) * dt
-            X[:,n] = np.copy(self.x)
-
-            self.t = self.t + dt
-            T[n] = self.t
-            
-        return X, T
-    
-    def runge_kutta4(self, dt, niter):
-        X = np.zeros([self.ndim, niter])
-        T = np.zeros([niter])
-        
-        X[:,0] = np.copy(self.x)
-        T[0] = np.copy(self.t)
-
-        for n in range(1, niter):
-            k1 = self.f(self.x, self.t)
-            k2 = self.f(self.x + k1 * dt/2, self.t + dt/2)
-            k3 = self.f(self.x + k2 * dt/2, self.t + dt/2)
-            k4 = self.f(self.x + k3 * dt, self.t + dt)
-            self.x += 1/6 * (k1 + 2*k2 + 2*k3 + k4) * dt
-            X[:,n] = np.copy(self.x)
-
-            self.t = self.t + dt
-            T[n] = self.t
-            
         return X, T

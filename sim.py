@@ -1,37 +1,36 @@
 #!/usr/bin/env python3
 
-import engine
+import engine, flight
 
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Constants
-profile = {}
-profile['fluid'] = 1.225            # Fluid Density | Air (kg/m^3)
-profile['gas'] = 0.1785             # Gas density | Helium (kg/m^3)
-profile['gravity'] = 9.80665        # Gravity
-profile['payload'] = 0.625          # Payload Mass (kg)
-profile['balloon_mass'] = 0.3       # Balloon Mass (kg)
-
-# Balloon parameters
-radius = 1.23 # m
-V = 4 / 3 * np.pi * radius ** 3
-mass_gas = profile['gas'] * V
-total_mass = profile['payload'] + profile['balloon_mass'] + mass_gas
-
-Fb = profile['fluid'] * profile['gravity'] * V # Archimedes' principle (Bouyancy)
-Fn = Fb - (total_mass * profile['gravity']) # Net force
-accel = Fn / total_mass # Acceleration
-
-print(f"Volume of the balloon: {V:.2f} m^3")
-print(f"Mass of the helium: {mass_gas:.2f} kg")
-print(f"Total mass: {total_mass:.2f} kg")
-print(f"Buoyant force: {Fb:.2f} N")
-print(f"Net force: {Fn:.2f} N") # Equilibrium @ zero (static)
-print(f"Acceleration: {accel:.2f} m/s^2")
-
 def balloon_dynamics(x, t):
-    _, v = x
+
+    h, v = x                                            # Input
+
+    # Constants
+    Pf = 1.225                                          # Fluid Density | Air (kg/m^3)
+    Pg = 0.1785                                         # Gas Density | Helium (kg/m^3)
+    payload = 0.625                                     # Payload Mass (kg)
+    balloon = 0.3                                       # Balloon Mass (kg)
+    rEarth = 6.371009 * 1e6                             # Earth Radius (m)
+    
+    g0 = 9.80665                                        # Gravity (Launch)
+    G = flight.gravity_gradient(g0, rEarth, h)          # Gravity @ Altitude
+
+    rad = 1.00                                          # Balloon Radius (m)
+
+    V = flight.volume(rad)
+    Mg = flight.mass(Pg, V)
+    Mtotal = payload + balloon + Mg
+
+    Fb = flight.bouyancy(Pf, G, V)                      # Bouyancy (Archimedes' Principle)
+    Fn = flight.net_force(Fb, Mtotal, G)                # Net Force (Free-lift)
+    accel = flight.accel(Fn, Mtotal)                    # Acceleration (Newtons 2nd Law)
+
+    print(f"Height: {h:.2f}m, Velocity: {v:.2f}m/s, Gravity: {G}m/s2")
+
     dh_dt = v
     dv_dt = accel
     return np.array([dh_dt, dv_dt])
@@ -40,10 +39,11 @@ model = engine.ODESolver(f=balloon_dynamics)
 
 # Init conditions 
 x0 = np.array([0.0, 0.0]) # h=0m, v=0m/s
-dt = 0.1  # s
-Tmax = 100
+dt = 0.1  # secs
+Tmax = 10
 
-model.reset(x0, t_start=0.0); X, T = model.runge_kutta4(dt, Tmax)
+# Simulate
+model.reset(x0, t_start=0.0); X, T = model.solve(dt, int(Tmax/dt), "rk4")
 
 # Height
 plt.figure(figsize=(10,5))
@@ -51,13 +51,15 @@ plt.subplot(2, 1, 1)
 plt.plot(T, X[0,:], 'k-', lw=1)
 plt.title('Height vs Time')
 plt.xlabel('Time (s)'), plt.ylabel('Height (m)')
-plt.xlim(0,(Tmax*dt)-dt), plt.grid(alpha=0.25)
+plt.xlim(0,Tmax-dt), plt.grid(alpha=0.25)
 
 # Velocity
 plt.subplot(2, 1, 2)
 plt.plot(T, X[1,:], 'r--', lw=1)
 plt.title('Velocity vs Time')
 plt.xlabel('Time (s)'), plt.ylabel('Velocity (m/s)')
-plt.xlim(0,(Tmax*dt)-dt), plt.grid(alpha=0.25)
+plt.xlim(0,Tmax-dt), plt.grid(alpha=0.25)
 plt.tight_layout()
 plt.show()
+
+print(flight.gravity_gradient(9.80665, 6371.009, 100))
