@@ -2,8 +2,8 @@
 
 import math
 
-def volume(rad):
-    return 4 / 3 * math.pi * rad ** 3
+def volume(r):
+    return 4 / 3 * math.pi * r ** 3
 
 def mass(p, V):
     return p * V

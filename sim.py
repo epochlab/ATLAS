@@ -5,7 +5,7 @@ import engine, flight
 import numpy as np
 import matplotlib.pyplot as plt
 
-def balloon_dynamics(x, t, feedback=False):
+def balloon_dynamics(x, t, status=False):
 
     h, v = x                                            # Input
 
@@ -23,18 +23,18 @@ def balloon_dynamics(x, t, feedback=False):
     Mtotal = payload + balloon + Mg
     
     g0 = 9.80665                                        # Gravity - (m/s^2)
-    h_geom = flight.geopotential_altitude(rEarth, h)
-    G = flight.gravity_gradient(g0, rEarth, h_geom)          # Gravity @ Altitude
+    h_geom = flight.geopotential_altitude(rEarth, h)    # Geometric Altitude
+    G = flight.gravity_gradient(g0, rEarth, h_geom)     # Gravity @ Altitude
 
-    rad = 1.00                                          # Balloon Radius Update (m)
+    rad = 1.0                                           # Balloon Radius Update (m)******
     V = flight.volume(rad)                              # Balloon Volume Update (m^3)
 
     Fb = flight.bouyancy(Pf, G, V)                      # Bouyancy (Archimedes' Principle)
     Fn = flight.net_force(Fb, Mtotal, G)                # Net Force (Free-lift)
     accel = flight.accel(Fn, Mtotal)                    # Acceleration (Newtons 2nd Law)
 
-    if feedback == True:
-        print(f"Time: {t:.2f}s, Height (Geometric): {h_geom:.2f}m, Velocity: {v:.2f}m/s")
+    if status == True:
+        print(f"Time: {t:.2f}s, Altitude: {h_geom:.2f}m, Velocity: {v:.2f}m/s")
 
     dh_dt = v
     dv_dt = accel
@@ -43,12 +43,12 @@ def balloon_dynamics(x, t, feedback=False):
 # Init conditions
 solver = engine.ODESolver(f=balloon_dynamics)
 
-x0 = np.array([0.0, 0.0]) # h=0m, v=0m/s
+x0 = np.array([0.1, 0.0]) # h=0m, v=0m/s
 dt = 0.1  # secs
 Tmax = 10
 
 # Simulate
-solver.reset(x0, t_start=0.0); X, T = solver.compute(dt, int(Tmax/dt), "rk2")
+solver.reset(x0, t_start=0.0); X, T = solver.compute(dt, int(Tmax/dt), "rk4")
 
 # # Height
 # plt.figure(figsize=(10,5))
@@ -66,3 +66,10 @@ solver.reset(x0, t_start=0.0); X, T = solver.compute(dt, int(Tmax/dt), "rk2")
 # plt.xlim(0,Tmax-dt), plt.grid(alpha=0.25)
 # plt.tight_layout()
 # plt.show()
+
+# Radius & Volume update
+# Burst Radius
+# Temperture
+# Drag???
+# Air Density Update > Bouyancy update
+# Time & Payload
