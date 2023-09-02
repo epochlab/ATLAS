@@ -1,47 +1,63 @@
 #!/usr/bin/env python3
 
-import math
+import engine
+
+import numpy as np
+import matplotlib.pyplot as plt
 
 # Constants
-g = -9.80665  # Gravity (m/s^2)
-p = 1.225  # Fluid density (kg/m^3)
-He = 0.1786  # Gas density (kg/m^3)
+profile = {}
+profile['fluid'] = 1.225            # Fluid Density | Air (kg/m^3)
+profile['gas'] = 0.1785             # Gas density | Helium (kg/m^3)
+profile['gravity'] = 9.80665        # Gravity
+profile['payload'] = 0.625          # Payload Mass (kg)
+profile['balloon_mass'] = 0.3       # Balloon Mass (kg)
 
 # Balloon parameters
-radius = 0.15 # m
-V = 4 / 3 * math.pi * radius ** 3
-mass_balloon = 0.02
-mass_He = He * V
-total_mass = mass_balloon + mass_He
+radius = 1.23 # m
+V = 4 / 3 * np.pi * radius ** 3
+mass_gas = profile['gas'] * V
+total_mass = profile['payload'] + profile['balloon_mass'] + mass_gas
 
-Fb = p * g * V # Archimedes' principle (Bouyancy)
-Fn = Fb - (total_mass * g) # Net force
+Fb = profile['fluid'] * profile['gravity'] * V # Archimedes' principle (Bouyancy)
+Fn = Fb - (total_mass * profile['gravity']) # Net force
 accel = Fn / total_mass # Acceleration
 
-print(f"Volume of the balloon: {V} m^3")
-print(f"Mass of the helium: {mass_He} kg")
-print(f"Total mass: {total_mass} kg")
-print(f"Buoyant force: {Fb} N")
-print(f"Net force: {Fn} N")
-print(f"Acceleration: {accel} m/s^2")
+print(f"Volume of the balloon: {V:.2f} m^3")
+print(f"Mass of the helium: {mass_gas:.2f} kg")
+print(f"Total mass: {total_mass:.2f} kg")
+print(f"Buoyant force: {Fb:.2f} N")
+print(f"Net force: {Fn:.2f} N") # Equilibrium @ zero (static)
+print(f"Acceleration: {accel:.2f} m/s^2")
 
-# Init
-height = 0.1
-velocity = 0
-time = 0
-time_step = 0.1
-i = 0
+def balloon_dynamics(x, t):
+    _, v = x
+    dh_dt = v
+    dv_dt = accel
+    return np.array([dh_dt, dv_dt])
 
-# Simulate
-while height > 0.0:
-    print(f"ID: {i}, Time (s): {time:.2f}, Height (m): {height:.2f}m, Velocity (m/s): {velocity:.2f}")
+model = engine.ODESolver(f=balloon_dynamics)
 
-    velocity += accel * time_step
-    height += velocity * time_step
-    time += time_step
+# Init conditions 
+x0 = np.array([0.0, 0.0]) # h=0m, v=0m/s
+dt = 0.1  # s
+Tmax = 100
 
-    i += 1
+model.reset(x0, t_start=0.0); X, T = model.runge_kutta4(dt, Tmax)
 
-    if height >= 1000.0:
-        print("Balloon has exploded.")
-        break
+# Height
+plt.figure(figsize=(10,5))
+plt.subplot(2, 1, 1)
+plt.plot(T, X[0,:], 'k-', lw=1)
+plt.title('Height vs Time')
+plt.xlabel('Time (s)'), plt.ylabel('Height (m)')
+plt.xlim(0,(Tmax*dt)-dt), plt.grid(alpha=0.25)
+
+# Velocity
+plt.subplot(2, 1, 2)
+plt.plot(T, X[1,:], 'r--', lw=1)
+plt.title('Velocity vs Time')
+plt.xlabel('Time (s)'), plt.ylabel('Velocity (m/s)')
+plt.xlim(0,(Tmax*dt)-dt), plt.grid(alpha=0.25)
+plt.tight_layout()
+plt.show()
