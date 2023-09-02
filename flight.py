@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-import numpy as np
+import math
 
 def volume(rad):
-    return 4 / 3 * np.pi * rad ** 3
+    return 4 / 3 * math.pi * rad ** 3
 
 def mass(p, V):
     return p * V

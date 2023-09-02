@@ -17,7 +17,7 @@ class ODESolver:
         self.x = x_start
         self.t = t_start
 
-    def solve(self, dt, niter, solver="rk4"):
+    def compute(self, dt, niter, solver="rk4"):
         X = np.zeros([self.ndim, niter])
         T = np.zeros([niter])
         
