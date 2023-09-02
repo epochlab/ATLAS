@@ -19,3 +19,6 @@ def accel(Fn, Mtotal):
 
 def gravity_gradient(g0, r, z):
     return g0 * ((r / (r + z)) ** 2)
+
+def geopotential_altitude(r, z):
+    return (r * z) / (r + z)
