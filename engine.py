@@ -3,6 +3,60 @@
 import numpy as np
 from tqdm import trange
 
+class Flight():
+    def __init__(self):
+        self.Pa = 1.293                                     # Air Density (kg/m^3) *** - To Be Dynamic
+        self.Pg = 0.1785                                    # Gas Density | Helium (kg/m^3)
+        self.payload = 0.625                                # Payload Mass (kg)
+        self.balloon = 0.3                                  # Balloon Mass (kg)
+        self.rEarth = 6.378e+06                             # Earth Radius (m)
+        self.g0 = 9.80665                                   # Gravity - (m/s^2)
+
+    def balloon_dynamics(self, x, t):
+        h, v = x                                            # Input
+
+        # Launch dimensions
+        r0 = 1.0
+        V0 = self._volume(r0)
+        Mg = self._mass(self.Pg, V0)
+        Mtot = self.payload + self.balloon + Mg
+        
+        # Dynamic
+        G = self._gravity_gradient(self.g0, self.rEarth, h) # Gravity @ Altitude
+
+        rad = 1.0                                           # Balloon Radius Update (m)******
+        V = self._volume(rad)                               # Balloon Volume Update (m^3)
+        # h_geom = flight.geopotential_altitude(rEarth, h)  # Geometric Altitude
+
+        Fb = self._bouyancy(self.Pa, G, V)                  # Bouyancy (Archimedes' Principle)
+        Fn = self._net_force(Fb, Mtot, G)                   # Net Force (Free-lift)
+        accel = self._acceleration(Fn, Mtot)                # Acceleration (Newtons 2nd Law)
+
+        dh_dt = v
+        dv_dt = accel
+        return np.array([dh_dt, dv_dt])
+
+    def _volume(self, r):
+        return 4 / 3 * np.pi * r ** 3
+
+    def _mass(self, p, V):
+        return p * V
+
+    def _bouyancy(self, p, g, V):
+        return p * g * V
+
+    def _net_force(self, Fb, Mtotal, g):
+        return Fb - (Mtotal * g)
+
+    def _acceleration(self, Fn, Mtotal):
+        return Fn / Mtotal
+
+    def _gravity_gradient(self, g0, r, z):
+        return self.g0 * ((r / (r + z)) ** 2)
+    
+    def _geopotential_altitude(self, r, z):
+        return (r * z) / (r + z)
+
 class ODESolver:
     def __init__(self, f):
         self.f = f

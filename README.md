@@ -11,6 +11,14 @@
 #### High-Altitude Balloon Research
 Abstract:*Work-In Progress*
 
+#### To-Do:
+- Air Density
+- Temperture
+- Drag???
+- Radius & Volume update
+- Burst Radius
+- Descent
+
 #### :books: References
 [HAB Atmospheric Database](https://www.iastatedigitalpress.com/ahac/article/8346/galley/7933/view/)
 [USM School of Aerospace](https://iopscience.iop.org/article/10.1088/1742-6596/1005/1/012048/pdf)
