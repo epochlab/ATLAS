@@ -33,9 +33,6 @@ def balloon_dynamics(x, t, status=False):
     Fn = flight.net_force(Fb, Mtotal, G)                # Net Force (Free-lift)
     accel = flight.accel(Fn, Mtotal)                    # Acceleration (Newtons 2nd Law)
 
-    if status == True:
-        print(f"Time: {t:.2f}s, Altitude: {h_geom:.2f}m, Velocity: {v:.2f}m/s")
-
     dh_dt = v
     dv_dt = accel
     return np.array([dh_dt, dv_dt])

@@ -24,7 +24,7 @@ class ODESolver:
         X[:,0] = np.copy(self.x)
         T[0] = np.copy(self.t)
         
-        for n in trange(1, niter):
+        for n in (t := trange(1, niter)):
             if solver == "euler":
                 self.x += self.f(self.x, self.t, True) * dt
 
@@ -47,5 +47,7 @@ class ODESolver:
             X[:,n] = np.copy(self.x)
             self.t = self.t + dt
             T[n] = self.t
+
+            t.set_description("Time: %.0fs | Altitude: %.2fm | Velocity: %.2fm/s" % (self.t, self.x[0], self.x[1]))
 
         return X, T
