@@ -5,15 +5,16 @@ from tqdm import trange
 
 class Flight():
     def __init__(self):
-        self.Pa = 1.293                                     # Air Density (kg/m^3) *** - To Be Dynamic
-        self.Pg = 0.1785                                    # Gas Density | Helium (kg/m^3)
-        self.payload = 0.625                                # Payload Mass (kg)
-        self.balloon = 0.3                                  # Balloon Mass (kg)
-        self.rEarth = 6.378e+06                             # Earth Radius (m)
-        self.g0 = 9.80665                                   # Gravity - (m/s^2)
+        self.Pa = 1.293                                             # Air Density (kg/m^3) *** - To Be Dynamic
+        self.Pg = 0.1785                                            # Gas Density | Helium (kg/m^3)
+        self.payload = 0.625                                        # Payload Mass (kg)
+        self.balloon = 0.3                                          # Balloon Mass (kg)
+        self.rEarth = 6.378e+06                                     # Earth Radius (m)
+        self.drag_coeff = 0.47                                      # Drag Coefficient
+        self.g0 = 9.80665                                           # Gravity @ Surface - (m/s^2)
 
     def balloon_dynamics(self, x, t):
-        h, v = x                                            # Input
+        h, v = x                                                    # Input
 
         # Launch dimensions
         r0 = 1.0
@@ -22,15 +23,17 @@ class Flight():
         Mtot = self.payload + self.balloon + Mg
         
         # Dynamic
-        G = self._gravity_gradient(self.g0, self.rEarth, h) # Gravity @ Altitude
+        G = self._gravity_gradient(self.rEarth, h)                  # Gravity @ Altitude
 
-        rad = 1.0                                           # Balloon Radius Update (m)******
-        V = self._volume(rad)                               # Balloon Volume Update (m^3)
-        # h_geom = flight.geopotential_altitude(rEarth, h)  # Geometric Altitude
+        rad = 1.0                                                   # Balloon Radius Update (m)******
+        V = self._volume(rad)                                       # Balloon Volume Update (m^3)
 
-        Fb = self._bouyancy(self.Pa, G, V)                  # Bouyancy (Archimedes' Principle)
-        Fn = self._net_force(Fb, Mtot, G)                   # Net Force (Free-lift)
-        accel = self._acceleration(Fn, Mtot)                # Acceleration (Newtons 2nd Law)
+        # h_geom = self._geopotential_altitude(self.rEarth, h)        # Geometric Altitude
+
+        Fb = self._bouyancy(self.Pa, G, V)                          # Bouyancy (Archimedes' Principle)
+        Fd = self._drag(rad, self.drag_coeff, self.Pa, np.abs(v))
+        Fn = self._net_force(Fb, Mtot, G) - np.sign(v) * Fd         # Net Force (Free-lift)
+        accel = self._acceleration(Fn, Mtot)                        # Acceleration (Newtons 2nd Law)
 
         dh_dt = v
         dv_dt = accel
@@ -51,7 +54,11 @@ class Flight():
     def _acceleration(self, Fn, Mtotal):
         return Fn / Mtotal
 
-    def _gravity_gradient(self, g0, r, z):
+    def _drag(self, r, Cd, p, vel):
+        A = np.pi * (r**2)
+        return 0.5 * Cd * A * p * (vel**2)
+
+    def _gravity_gradient(self, r, z):
         return self.g0 * ((r / (r + z)) ** 2)
     
     def _geopotential_altitude(self, r, z):
@@ -102,6 +109,7 @@ class ODESolver:
             self.t = self.t + dt
             T[n] = self.t
 
-            t.set_description("Time: %.0fs | Altitude: %.2fm | Velocity: %.2fm/s" % (self.t, self.x[0], self.x[1]))
+            print(f"Time: %.0fs | Altitude: %.2fm | Velocity: %.2fm/s" % (self.t, self.x[0], self.x[1]))
+            # t.set_description("Time: %.0fs | Altitude: %.2fm | Velocity: %.2fm/s" % (self.t, self.x[0], self.x[1]))
 
         return X, T

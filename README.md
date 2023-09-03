@@ -14,8 +14,7 @@ Abstract:*Work-In Progress*
 #### To-Do:
 - Air Density
 - Temperture
-- Drag???
-- Radius & Volume update
+- Gas Expansion
 - Burst Radius
 - Descent
 
