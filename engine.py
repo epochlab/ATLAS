@@ -26,22 +26,22 @@ class ODESolver:
         
         for n in (t := trange(1, niter)):
             if solver == "euler":
-                self.x += self.f(self.x, self.t, True) * dt
+                self.x += self.f(self.x, self.t) * dt
 
             if solver == "midpoint":
                 x_mp = self.x + self.f(self.x, self.t) * dt/2
-                self.x += self.f(x_mp, self.t + dt/2, True) * dt
+                self.x += self.f(x_mp, self.t + dt/2) * dt
 
             if solver == "rk2":
                 k1 = self.f(self.x, self.t)
-                k2 = self.f(self.x + k1 * dt, self.t + dt, True)
+                k2 = self.f(self.x + k1 * dt, self.t + dt)
                 self.x += 0.5 * (k1 + k2) * dt
 
             if solver == "rk4":
                 k1 = self.f(self.x, self.t)
                 k2 = self.f(self.x + k1 * dt/2, self.t + dt/2)
                 k3 = self.f(self.x + k2 * dt/2, self.t + dt/2)
-                k4 = self.f(self.x + k3 * dt, self.t + dt, True)
+                k4 = self.f(self.x + k3 * dt, self.t + dt)
                 self.x += 1/6 * (k1 + 2*k2 + 2*k3 + k4) * dt
         
             X[:,n] = np.copy(self.x)
