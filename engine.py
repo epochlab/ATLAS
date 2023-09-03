@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
 
+import libtools
+
 import numpy as np
 from tqdm import trange
 
 class Flight():
     def __init__(self):
-        self.Pa = 1.293                                             # Air Density (kg/m^3) *** - To Be Dynamic
+        self.p0 = 1.225                                             # Air Density (kg/m^3) *** - To Be Dynamic
         self.Pg = 0.1785                                            # Gas Density | Helium (kg/m^3)
         self.payload = 0.625                                        # Payload Mass (kg)
         self.balloon = 0.3                                          # Balloon Mass (kg)
         self.rEarth = 6.378e+06                                     # Earth Radius (m)
         self.drag_coeff = 0.47                                      # Drag Coefficient
         self.g0 = 9.80665                                           # Gravity @ Surface - (m/s^2)
+
+        self.atmos = libtools.load_config('config.yml')['us-standard']
 
     def balloon_dynamics(self, x, t):
         h, v = x                                                    # Input
@@ -30,8 +34,8 @@ class Flight():
 
         # h_geom = self._geopotential_altitude(self.rEarth, h)        # Geometric Altitude
 
-        Fb = self._bouyancy(self.Pa, G, V)                          # Bouyancy (Archimedes' Principle)
-        Fd = self._drag(rad, self.drag_coeff, self.Pa, np.abs(v))
+        Fb = self._bouyancy(self.p0, G, V)                          # Bouyancy (Archimedes' Principle)
+        Fd = self._drag(rad, self.drag_coeff, self.p0, np.abs(v))
         Fn = self._net_force(Fb, Mtot, G) - np.sign(v) * Fd         # Net Force (Free-lift)
         accel = self._acceleration(Fn, Mtot)                        # Acceleration (Newtons 2nd Law)
 
