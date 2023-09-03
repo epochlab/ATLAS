@@ -7,7 +7,7 @@ from tqdm import trange
 
 class Flight():
     def __init__(self):
-        self.p0 = 1.225                                             # Air Density (kg/m^3) *** - To Be Dynamic
+        self.p0 = 1.225                                             # Air Density | Sea level (kg/m^3)
         self.Pg = 0.1785                                            # Gas Density | Helium (kg/m^3)
         self.payload = 0.625                                        # Payload Mass (kg)
         self.balloon = 0.3                                          # Balloon Mass (kg)
@@ -29,13 +29,15 @@ class Flight():
         # Dynamic
         G = self._gravity_gradient(self.rEarth, h)                  # Gravity @ Altitude
 
+        h_geo = self._geopotential_altitude(self.rEarth, h)         # Geometric Altitude
+        p = self._density_gradient(h_geo)                           # Air / Fluid Density @ Altitude
+        print(p)
+
         rad = 1.0                                                   # Balloon Radius Update (m)******
         V = self._volume(rad)                                       # Balloon Volume Update (m^3)
 
-        # h_geom = self._geopotential_altitude(self.rEarth, h)        # Geometric Altitude
-
         Fb = self._bouyancy(self.p0, G, V)                          # Bouyancy (Archimedes' Principle)
-        Fd = self._drag(rad, self.drag_coeff, self.p0, np.abs(v))
+        Fd = self._drag(rad, self.drag_coeff, self.p0, np.abs(v))   # Drag Force
         Fn = self._net_force(Fb, Mtot, G) - np.sign(v) * Fd         # Net Force (Free-lift)
         accel = self._acceleration(Fn, Mtot)                        # Acceleration (Newtons 2nd Law)
 
@@ -64,7 +66,20 @@ class Flight():
 
     def _gravity_gradient(self, r, z):
         return self.g0 * ((r / (r + z)) ** 2)
-    
+
+    def atmospheric_density(self, h):
+        geo_alt = self.atmos['geopotential_altitude']
+
+        for i in range(len(geo_alt) - 1):
+            if geo_alt[i] <= h < geo_alt[i + 1]:
+                band = i
+
+        P = self.atmos['static_pressure'][band]
+        T = self.atmos['standard_temp'][band]
+        R = 287.058 # Dry Air
+
+        return P / (R * T)
+
     def _geopotential_altitude(self, r, z):
         return (r * z) / (r + z)
 
