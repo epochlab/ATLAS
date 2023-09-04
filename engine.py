@@ -7,28 +7,29 @@ from tqdm import trange
 
 class Flight():
     def __init__(self):
-        self.p0 = 1.225                                             # Air Density | Sea level (kg/m^3) - To be dynamic
+        self.p0 = 1.225                                             # Air Density | Sea level (kg/m^3)
         self.Pg = 0.1785                                            # Gas Density | Helium (kg/m^3)
-        self.payload = 0.625                                        # Payload Mass (kg)
-        self.balloon = 0.3                                          # Balloon Mass (kg)
-        self.rEarth = 6.378e+06                                     # Earth Radius (m)
-        self.drag_coeff = 0.47                                      # Drag Coefficient
-        self.g0 = 9.80665                                           # Gravity @ Surface - (m/s^2)
 
+        # Environment
+        self.rEarth = 6.378e+06                                     # Earth Radius (m)
+        self.g0 = 9.80665                                           # Gravity @ Surface - (m/s^2)
+        self.drag_coeff = 0.47                                      # Drag Coefficient
         self.atmos = libtools.load_config('config.yml')['us-standard']
 
-        self.rad = 1.23
-        self.h = 0.1
-        self.burst_alt = 24700
-        self.burst_radius = 1.89
+        # Balloon
+        self.payload = 0.625                                        # Payload Mass (kg)
+        self.balloon = 0.3                                          # Balloon Mass (kg)
+        self.rad = 0.615                                            # Launch Radius (m)
+        self.burst_alt = 24700                                      # Burst Altitude (m)
+        self.burst_rad = 1.89                                       # Burst Radius (m)
 
     def balloon_dynamics(self, x, t):
-        h, vel = x                                                    # Input
+        h, vel = x                                                  # Input
 
-        # Launch dimensions
-        V0 = self._rad2vol(self.rad)
-        Mg = self._mass(self.Pg, V0)
-        Mtot = self.payload + self.balloon + Mg
+        # Launch
+        V0 = self._rad2vol(self.rad)                                # Launch Volume
+        Mg = self._mass(self.Pg, V0)                                # Mass of Gas
+        Mtot = self.payload + self.balloon + Mg                     # Total Mass (Payload + Balloon + Gas)
 
         # Dynamic
         h_geo = self._geopotential_altitude(self.rEarth, h)         # Geometric Altitude
@@ -42,6 +43,9 @@ class Flight():
         Fd = self._drag(rad_a, self.drag_coeff, rho_a, vel)         # Drag Force
         Fn = self._net_force(Fb, Mtot, G) - Fd                      # Net Force (Free-lift) inc. Drag
         accel = self._acceleration(Fn, Mtot)                        # Acceleration (Newtons 2nd Law)
+
+        if int(t*1000 % 100) == 0:
+            print("Time: %.2fs | Alt: %.2fm | Vel: %.2fm/s | Radius: %.3fm | Volume: %.2fm" % (t, h_geo, vel, rad_a, V_a))
 
         dh_dt = vel
         dv_dt = accel
@@ -108,7 +112,7 @@ class ODESolver:
         X[:,0] = np.copy(self.x)
         T[0] = np.copy(self.t)
         
-        for n in (t := trange(1, niter)):
+        for n in range(1, niter):
             if solver == "euler":
                 self.x += self.f(self.x, self.t) * dt
 
@@ -131,8 +135,5 @@ class ODESolver:
             X[:,n] = np.copy(self.x)
             self.t = self.t + dt
             T[n] = self.t
-            
-            print(f"Time: %.2fs | Altitude: %.2fm | Velocity: %.2fm/s" % (self.t, self.x[0], self.x[1]))
-            # t.set_description("Time: %.0fs | Altitude: %.2fm | Velocity: %.2fm/s" % (self.t, self.x[0], self.x[1]))
 
         return X, T
