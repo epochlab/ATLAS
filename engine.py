@@ -7,7 +7,7 @@ from tqdm import trange
 
 class Flight():
     def __init__(self):
-        self.p0 = 1.225                                             # Air Density | Sea level (kg/m^3)
+        self.p0 = 1.225                                             # Air Density | Sea level (kg/m^3) - To be dynamic
         self.Pg = 0.1785                                            # Gas Density | Helium (kg/m^3)
         self.payload = 0.625                                        # Payload Mass (kg)
         self.balloon = 0.3                                          # Balloon Mass (kg)
@@ -17,36 +17,41 @@ class Flight():
 
         self.atmos = libtools.load_config('config.yml')['us-standard']
 
+        self.rad = 1.23
+        self.h = 0.1
+        self.burst_alt = 24700
+        self.burst_radius = 1.89
+
     def balloon_dynamics(self, x, t):
-        h, v = x                                                    # Input
+        h, vel = x                                                    # Input
 
         # Launch dimensions
-        r0 = 1.0
-        V0 = self._volume(r0)
+        V0 = self._rad2vol(self.rad)
         Mg = self._mass(self.Pg, V0)
         Mtot = self.payload + self.balloon + Mg
-        
+
         # Dynamic
-        G = self._gravity_gradient(self.rEarth, h)                  # Gravity @ Altitude
-
         h_geo = self._geopotential_altitude(self.rEarth, h)         # Geometric Altitude
-        p = self._density_gradient(h_geo)                           # Air / Fluid Density @ Altitude
-        print(p)
+        rho_a = self._atmospheric_density(h_geo)                    # Air / Fluid Density @ Altitude
+        V_a = (self.p0 / rho_a) * V0                                # Balloon Volume Update (m^3)
+        rad_a = self._vol2rad(V_a)                                  # Balloon Radius Update (m)
 
-        rad = 1.0                                                   # Balloon Radius Update (m)******
-        V = self._volume(rad)                                       # Balloon Volume Update (m^3)
-
-        Fb = self._bouyancy(self.p0, G, V)                          # Bouyancy (Archimedes' Principle)
-        Fd = self._drag(rad, self.drag_coeff, self.p0, np.abs(v))   # Drag Force
-        Fn = self._net_force(Fb, Mtot, G) - np.sign(v) * Fd         # Net Force (Free-lift)
+        # Forces
+        G = self._gravity_gradient(self.rEarth, h)                  # Gravity @ Altitude
+        Fb = self._bouyancy(rho_a, G, V_a)                          # Bouyancy (Archimedes' Principle)
+        Fd = self._drag(rad_a, self.drag_coeff, rho_a, vel)         # Drag Force
+        Fn = self._net_force(Fb, Mtot, G) - Fd                      # Net Force (Free-lift) inc. Drag
         accel = self._acceleration(Fn, Mtot)                        # Acceleration (Newtons 2nd Law)
 
-        dh_dt = v
+        dh_dt = vel
         dv_dt = accel
         return np.array([dh_dt, dv_dt])
 
-    def _volume(self, r):
+    def _rad2vol(self, r):
         return 4 / 3 * np.pi * r ** 3
+
+    def _vol2rad(self, V):
+        return (3 * V / (4 * np.pi)) ** (1 / 3)
 
     def _mass(self, p, V):
         return p * V
@@ -66,22 +71,21 @@ class Flight():
 
     def _gravity_gradient(self, r, z):
         return self.g0 * ((r / (r + z)) ** 2)
+    
+    def _geopotential_altitude(self, r, z):
+        return (r * z) / (r + z)
 
-    def atmospheric_density(self, h):
-        geo_alt = self.atmos['geopotential_altitude']
-
-        for i in range(len(geo_alt) - 1):
-            if geo_alt[i] <= h < geo_alt[i + 1]:
-                band = i
+    def _atmospheric_density(self, z):
+        band = 0
+        for alt in self.atmos['geopotential_altitude']:
+            if alt <= z and alt != 0:
+                band += 1
 
         P = self.atmos['static_pressure'][band]
         T = self.atmos['standard_temp'][band]
         R = 287.058 # Dry Air
 
         return P / (R * T)
-
-    def _geopotential_altitude(self, r, z):
-        return (r * z) / (r + z)
 
 class ODESolver:
     def __init__(self, f):
@@ -127,8 +131,8 @@ class ODESolver:
             X[:,n] = np.copy(self.x)
             self.t = self.t + dt
             T[n] = self.t
-
-            print(f"Time: %.0fs | Altitude: %.2fm | Velocity: %.2fm/s" % (self.t, self.x[0], self.x[1]))
+            
+            print(f"Time: %.2fs | Altitude: %.2fm | Velocity: %.2fm/s" % (self.t, self.x[0], self.x[1]))
             # t.set_description("Time: %.0fs | Altitude: %.2fm | Velocity: %.2fm/s" % (self.t, self.x[0], self.x[1]))
 
         return X, T
