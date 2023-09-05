@@ -22,10 +22,9 @@ class Flight():
         self.drag_coeff = 0.47                                      # Drag Coefficient
         self.burst_alt = 24700                                      # Burst Altitude (m)
         self.burst_rad = 1.89                                       # Burst Radius (m)
-        self.status = "Ascending"                                   # Status code
-
-        self.parachute_rad = 0.5
-        self.parachute_drag_coeff = 0.78
+        self.para_rad = 0.5                                         # Parachute Radius (m)
+        self.para_drag_coeff = 0.78                                 # Parachute Drag Coefficient
+        self.status = "Ascending"                                   # Status Code
 
     def balloon_dynamics(self, x, t):
         h, vel = x                                                  # Input
@@ -47,17 +46,15 @@ class Flight():
         Fp = 0.0
         if rad_a >= self.burst_rad:
             self.status = "Descending"
-        
+
         if self.status == "Descending":
             V_a = 0.0
             rad_a = 0.0
-            Fp = self._drag(self.parachute_rad, self.parachute_drag_coeff, self.p0, Mtot*G)     # Parachute Drag Force ????
+            Fp = self._drag(self.para_rad, self.para_drag_coeff, rho_a, Mtot*G)     # Parachute Drag Force ????
 
         Fb = self._bouyancy(rho_a, G, V_a)                          # Bouyancy (Archimedes' Principle)
-
         Fd = self._drag(rad_a, self.drag_coeff, rho_a, vel)         # Balloon Drag Force
-
-        Fn = self._net_force(Fb, Mtot, G) - (Fd + Fp)                      # Net Force (Free-lift)
+        Fn = self._net_force(Fb, Mtot, G) - (Fd + Fp)               # Net Force (Free-lift)
         accel = self._acceleration(Fn, Mtot)                        # Acceleration (Newtons 2nd Law)
 
         # t_vel = self._terminal_velocity(Mtot, G, rho_a, rad_a, self.drag_coeff) # Terminal Velocity (m/s)
@@ -127,15 +124,15 @@ class ODESolver:
 
         self.x = x_start
         self.t = t_start
+  
+    def compute(self, dt, solver="rk4"):
+        X = []
+        T = []
+        
+        X.append(np.copy(self.x))
+        T.append(np.copy(self.t))
 
-    def compute(self, dt, niter, solver="rk4"):
-        X = np.zeros([self.ndim, niter])
-        T = np.zeros([niter])
-        
-        X[:,0] = np.copy(self.x)
-        T[0] = np.copy(self.t)
-        
-        for n in range(1, niter):
+        while self.x[0] > 0.0:
             if solver == "euler":
                 self.x += self.f(self.x, self.t) * dt
 
@@ -154,25 +151,8 @@ class ODESolver:
                 k3 = self.f(self.x + k2 * dt/2, self.t + dt/2)
                 k4 = self.f(self.x + k3 * dt, self.t + dt)
                 self.x += 1/6 * (k1 + 2*k2 + 2*k3 + k4) * dt
-        
-            X[:,n] = np.copy(self.x)
-            self.t = self.t + dt
-            T[n] = self.t
-
-        return X, T
-    
-    def compute_loop(self, dt):
-        X = []
-        T = []
-        
-        X.append(np.copy(self.x))
-        T.append(np.copy(self.t))
-
-        while self.x[0] > 0.0:
-            self.x += self.f(self.x, self.t) * dt
-            self.t = self.t + dt
 
             X.append(np.copy(self.x))
-            T.append(self.t)
+            T.append(self.t + dt)
 
         return X, T
