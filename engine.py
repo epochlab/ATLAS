@@ -15,13 +15,17 @@ class Flight():
         self.g0 = 9.80665                                           # Gravity @ Surface - (m/s^2)
         self.atmos = libtools.load_config('config.yml')['us-standard']
 
-        # Balloon
+        # Radiosonde
         self.payload = 0.625                                        # Payload Mass (kg)
         self.balloon = 0.3                                          # Balloon Mass (kg)
         self.rad = 0.615                                            # Launch Radius (m)
         self.drag_coeff = 0.47                                      # Drag Coefficient
         self.burst_alt = 24700                                      # Burst Altitude (m)
         self.burst_rad = 1.89                                       # Burst Radius (m)
+        self.status = "Ascending"                                   # Status code
+
+        self.parachute_rad = 0.5
+        self.parachute_drag_coeff = 0.78
 
     def balloon_dynamics(self, x, t):
         h, vel = x                                                  # Input
@@ -39,13 +43,27 @@ class Flight():
 
         # Forces
         G = self._gravity_gradient(self.rEarth, h)                  # Gravity @ Altitude
+
+        Fp = 0.0
+        if rad_a >= self.burst_rad:
+            self.status = "Descending"
+        
+        if self.status == "Descending":
+            V_a = 0.0
+            rad_a = 0.0
+            Fp = self._drag(self.parachute_rad, self.parachute_drag_coeff, self.p0, Mtot*G)     # Parachute Drag Force ????
+
         Fb = self._bouyancy(rho_a, G, V_a)                          # Bouyancy (Archimedes' Principle)
-        Fd = self._drag(rad_a, self.drag_coeff, rho_a, vel)         # Drag Force
-        Fn = self._net_force(Fb, Mtot, G) - Fd                      # Net Force (Free-lift) inc. Drag
+
+        Fd = self._drag(rad_a, self.drag_coeff, rho_a, vel)         # Balloon Drag Force
+
+        Fn = self._net_force(Fb, Mtot, G) - (Fd + Fp)                      # Net Force (Free-lift)
         accel = self._acceleration(Fn, Mtot)                        # Acceleration (Newtons 2nd Law)
 
-        if int(t*1000 % 100) == 0:
-            print("Time: %.2fs | Alt: %.2fm | Vel: %.2fm/s | Radius: %.3fm | Volume: %.2fm" % (t, h_geo, vel, rad_a, V_a))
+        # t_vel = self._terminal_velocity(Mtot, G, rho_a, rad_a, self.drag_coeff) # Terminal Velocity (m/s)
+
+        if int(t*1000 % 1000) == 0:
+            print("Status: %s | Time: %.2fs | Alt: %.2fm | Vel: %.2fm/s | Radius: %.3fm | Volume: %.2fm" % (self.status, t, h_geo, vel, rad_a, V_a))
 
         dh_dt = vel
         dv_dt = accel
@@ -56,6 +74,9 @@ class Flight():
 
     def _vol2rad(self, V):
         return (3 * V / (4 * np.pi)) ** (1 / 3)
+    
+    def _area(self, r):
+        return np.pi * (r**2)
 
     def _mass(self, p, V):
         return p * V
@@ -70,8 +91,7 @@ class Flight():
         return Fn / Mtotal
 
     def _drag(self, r, Cd, p, vel):
-        A = np.pi * (r**2)
-        return 0.5 * Cd * A * p * (vel**2)
+        return 0.5 * Cd * self._area(r) * p * (vel**2)
 
     def _gravity_gradient(self, r, z):
         return self.g0 * ((r / (r + z)) ** 2)
@@ -90,6 +110,9 @@ class Flight():
         R = 287.058 # Dry Air
 
         return P / (R * T)
+    
+    def _terminal_velocity(self, m, g, p, r, Cd):
+        return np.sqrt((2*m*g) / (p*self._area(r)*Cd))
 
 class ODESolver:
     def __init__(self, f):
@@ -135,5 +158,21 @@ class ODESolver:
             X[:,n] = np.copy(self.x)
             self.t = self.t + dt
             T[n] = self.t
+
+        return X, T
+    
+    def compute_loop(self, dt):
+        X = []
+        T = []
+        
+        X.append(np.copy(self.x))
+        T.append(np.copy(self.t))
+
+        while self.x[0] > 0.0:
+            self.x += self.f(self.x, self.t) * dt
+            self.t = self.t + dt
+
+            X.append(np.copy(self.x))
+            T.append(self.t)
 
         return X, T
