@@ -13,13 +13,13 @@ class Flight():
         # Environment
         self.rEarth = 6.378e+06                                     # Earth Radius (m)
         self.g0 = 9.80665                                           # Gravity @ Surface - (m/s^2)
-        self.drag_coeff = 0.47                                      # Drag Coefficient
         self.atmos = libtools.load_config('config.yml')['us-standard']
 
         # Balloon
         self.payload = 0.625                                        # Payload Mass (kg)
         self.balloon = 0.3                                          # Balloon Mass (kg)
         self.rad = 0.615                                            # Launch Radius (m)
+        self.drag_coeff = 0.47                                      # Drag Coefficient
         self.burst_alt = 24700                                      # Burst Altitude (m)
         self.burst_rad = 1.89                                       # Burst Radius (m)
 
