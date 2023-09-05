@@ -23,7 +23,7 @@ class Flight():
         self.burst_alt = 24700                                      # Burst Altitude (m)
         self.burst_rad = 1.89                                       # Burst Radius (m)
         self.para_rad = 0.5                                         # Parachute Radius (m)
-        self.para_drag_coeff = 0.78                                 # Parachute Drag Coefficient
+        self.para_drag_coeff = 0.47                                 # Parachute Drag Coefficient
         self.status = "Ascending"                                   # Status Code
 
     def balloon_dynamics(self, x, t):
@@ -50,14 +50,15 @@ class Flight():
         if self.status == "Descending":
             V_a = 0.0
             rad_a = 0.0
-            Fp = self._drag(self.para_rad, self.para_drag_coeff, rho_a, Mtot*G)     # Parachute Drag Force ????
+            Mtot = self.payload + self.balloon
+            Fp = self._drag(self.para_rad, self.para_drag_coeff, rho_a, vel)     # Parachute Drag Force ????
 
         Fb = self._bouyancy(rho_a, G, V_a)                          # Bouyancy (Archimedes' Principle)
         Fd = self._drag(rad_a, self.drag_coeff, rho_a, vel)         # Balloon Drag Force
-        Fn = self._net_force(Fb, Mtot, G) - (Fd + Fp)               # Net Force (Free-lift)
-        accel = self._acceleration(Fn, Mtot)                        # Acceleration (Newtons 2nd Law)
 
-        # t_vel = self._terminal_velocity(Mtot, G, rho_a, rad_a, self.drag_coeff) # Terminal Velocity (m/s)
+        Fn = self._net_force(Fb, Mtot, G) - (Fd + Fp)              # Net Force (Free-lift)
+        accel = self._acceleration(Fn, Mtot)                        # Acceleration (Newtons 2nd Law)
+        # print(Fn, Fp)
 
         if int(t*1000 % 1000) == 0:
             print("Status: %s | Time: %.2fs | Alt: %.2fm | Vel: %.2fm/s | Radius: %.3fm | Volume: %.2fm" % (self.status, t, h_geo, vel, rad_a, V_a))
@@ -128,7 +129,7 @@ class ODESolver:
     def compute(self, dt, solver="rk4"):
         X = []
         T = []
-        
+        print(self.t)
         X.append(np.copy(self.x))
         T.append(np.copy(self.t))
 
@@ -152,6 +153,7 @@ class ODESolver:
                 k4 = self.f(self.x + k3 * dt, self.t + dt)
                 self.x += 1/6 * (k1 + 2*k2 + 2*k3 + k4) * dt
 
+            self.t = self.t + dt
             X.append(np.copy(self.x))
             T.append(self.t + dt)
 
