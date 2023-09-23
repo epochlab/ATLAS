@@ -13,6 +13,7 @@ class Flight():
         # Environment
         self.rEarth = 6.378e+06                                     # Earth Radius (m)
         self.g0 = 9.80665                                           # Gravity @ Surface - (m/s^2)
+
         self.atmos = libtools.load_config('config.yml')['us-standard']
 
         # Radiosonde
@@ -27,7 +28,7 @@ class Flight():
         self.status = "Ascending"                                   # Status Code
 
     def balloon_dynamics(self, x, t):
-        h, vel = x                                                  # Input
+        h, vel = x
 
         # Launch
         V0 = self._rad2vol(self.rad)                                # Launch Volume
@@ -42,26 +43,25 @@ class Flight():
 
         # Forces
         G = self._gravity_gradient(self.rEarth, h)                  # Gravity @ Altitude
+        Fp = 0.0                                                    # Parachute Drag Force
 
-        Fp = 0.0
-        if rad_a >= self.burst_rad:
-            self.status = "Descending"
+        if rad_a >= self.burst_rad: self.status = "Descending"
 
         if self.status == "Descending":
             V_a = 0.0
             rad_a = 0.0
             Mtot = self.payload + self.balloon
-            Fp = self._drag(self.para_rad, self.para_drag_coeff, rho_a, vel)     # Parachute Drag Force ????
+            Fp = -self._drag(self.para_rad, self.para_drag_coeff, rho_a, vel)
 
         Fb = self._bouyancy(rho_a, G, V_a)                          # Bouyancy (Archimedes' Principle)
         Fd = self._drag(rad_a, self.drag_coeff, rho_a, vel)         # Balloon Drag Force
 
-        Fn = self._net_force(Fb, Mtot, G) - (Fd + Fp)              # Net Force (Free-lift)
+        Fn = self._net_force(Fb, Mtot, G) - (Fd + Fp)               # Net Force
         accel = self._acceleration(Fn, Mtot)                        # Acceleration (Newtons 2nd Law)
-        # print(Fn, Fp)
 
-        if int(t*1000 % 1000) == 0:
-            print("Status: %s | Time: %.2fs | Alt: %.2fm | Vel: %.2fm/s | Radius: %.3fm | Volume: %.2fm" % (self.status, t, h_geo, vel, rad_a, V_a))
+        Vt = self._terminal_velocity(Mtot, G, rho_a, self.para_rad, self.para_drag_coeff)
+
+        print("Status: %s | Time: %.2fs | Alt: %.2fm | Vel: %.2fm/s | Radius: %.2fm | Volume: %.2fm | Terminal Vel: %.2fm/s" % (self.status, t, h_geo, vel, rad_a, V_a, Vt))
 
         dh_dt = vel
         dv_dt = accel
@@ -115,21 +115,17 @@ class Flight():
 class ODESolver:
     def __init__(self, f):
         self.f = f
-        self.x, self.t, self.ndim = [], [], []
+        self.x, self.t = [], []
        
     def reset(self, x_start, t_start):
         if isinstance(x_start, float):
             x_start = np.array([x_start])
 
-        self.ndim = np.shape(x_start)[0]
-
         self.x = x_start
         self.t = t_start
   
     def compute(self, dt, solver="rk4"):
-        X = []
-        T = []
-        print(self.t)
+        X, T = [], []
         X.append(np.copy(self.x))
         T.append(np.copy(self.t))
 
@@ -153,8 +149,9 @@ class ODESolver:
                 k4 = self.f(self.x + k3 * dt, self.t + dt)
                 self.x += 1/6 * (k1 + 2*k2 + 2*k3 + k4) * dt
 
-            self.t = self.t + dt
+            self.t += dt
+
             X.append(np.copy(self.x))
-            T.append(self.t + dt)
+            T.append(self.t)
 
         return X, T
