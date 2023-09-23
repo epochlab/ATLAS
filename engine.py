@@ -61,7 +61,8 @@ class Flight():
 
         Vt = self._terminal_velocity(Mtot, G, rho_a, self.para_rad, self.para_drag_coeff)
 
-        print("Status: %s | Time: %.2fs | Alt: %.2fm | Vel: %.2fm/s | Radius: %.2fm | Volume: %.2fm | Terminal Vel: %.2fm/s" % (self.status, t, h_geo, vel, rad_a, V_a, Vt))
+        hrs, mins, secs = libtools.sec2time(t)
+        print("Status: %s | Time: %.0fh:%.0fm:%.1fs | Alt: %.2fm | Vel: %.2fm/s | Radius: %.2fm | Volume: %.2fm | Terminal Vel: %.2fm/s" % (self.status, hrs, mins, secs, h_geo, vel, rad_a, V_a, Vt))  
 
         dh_dt = vel
         dv_dt = accel
@@ -115,43 +116,37 @@ class Flight():
 class ODESolver:
     def __init__(self, f):
         self.f = f
-        self.x, self.t = [], []
        
-    def reset(self, x_start, t_start):
-        if isinstance(x_start, float):
-            x_start = np.array([x_start])
-
+    def reset(self, x_start=None, t_start=0.0):
         self.x = x_start
         self.t = t_start
-  
-    def compute(self, dt, solver="rk4"):
-        X, T = [], []
-        X.append(np.copy(self.x))
-        T.append(np.copy(self.t))
+
+    def compute(self, dt, solver="RK4"):
+        x0, x1, T = [self.x[0]], [self.x[1]], [self.t] # Init
 
         while self.x[0] > 0.0:
-            if solver == "euler":
+            if solver == "EULER":
                 self.x += self.f(self.x, self.t) * dt
-
-            if solver == "midpoint":
+            elif solver == "MIDPOINT":
                 x_mp = self.x + self.f(self.x, self.t) * dt/2
                 self.x += self.f(x_mp, self.t + dt/2) * dt
-
-            if solver == "rk2":
+            elif solver == "RK2":
                 k1 = self.f(self.x, self.t)
                 k2 = self.f(self.x + k1 * dt, self.t + dt)
                 self.x += 0.5 * (k1 + k2) * dt
-
-            if solver == "rk4":
+            elif solver == "RK4":
                 k1 = self.f(self.x, self.t)
                 k2 = self.f(self.x + k1 * dt/2, self.t + dt/2)
                 k3 = self.f(self.x + k2 * dt/2, self.t + dt/2)
                 k4 = self.f(self.x + k3 * dt, self.t + dt)
                 self.x += 1/6 * (k1 + 2*k2 + 2*k3 + k4) * dt
+            else:
+                raise ValueError("Invalid solver method")
 
             self.t += dt
 
-            X.append(np.copy(self.x))
+            x0.append(np.copy(self.x[0])) # Altitude
+            x1.append(np.copy(self.x[1])) # Velocity
             T.append(self.t)
 
-        return X, T
+        return np.array([x0, x1]), T
