@@ -7,57 +7,56 @@ from tqdm import trange
 
 class Flight():
     def __init__(self):
-        self.p0 = 1.225                                             # Air Density | Sea level (kg/m^3)
-        self.Pg = 0.1785                                            # Gas Density | Helium (kg/m^3)
+        self.p0 = 1.225                                                 # Air Density | Sea level (kg/m^3)
+        self.Pg = 0.1785                                                # Gas Density | Helium (kg/m^3)
 
         # Environment
-        self.rEarth = 6.378e+06                                     # Earth Radius (m)
-        self.g0 = 9.80665                                           # Gravity @ Surface - (m/s^2)
-
-        self.atmos = libtools.load_config('config.yml')['us-standard']
+        self.rEarth = 6.378e+06                                         # Earth Radius (m)
+        self.g0 = 9.80665                                               # Gravity @ Surface - (m/s^2)
+        self.atmos = libtools.load_config('config.yml')['us-standard']  # Atmosphere Profile
 
         # Radiosonde
-        self.payload = 0.625                                        # Payload Mass (kg)
-        self.balloon = 0.3                                          # Balloon Mass (kg)
-        self.rad = 0.615                                            # Launch Radius (m)
-        self.drag_coeff = 0.47                                      # Drag Coefficient
-        self.burst_alt = 24700                                      # Burst Altitude (m)
-        self.burst_rad = 1.89                                       # Burst Radius (m)
-        self.para_rad = 0.5                                         # Parachute Radius (m)
-        self.para_drag_coeff = 0.47                                 # Parachute Drag Coefficient
-        self.status = "Ascending"                                   # Status Code
+        self.payload = 0.625                                            # Payload Mass (kg)
+        self.balloon = 0.3                                              # Balloon Mass (kg)
+        self.rad = 0.615                                                # Launch Radius (m)
+        self.drag_coeff = 0.47                                          # Drag Coefficient
+        self.burst_alt = 24700                                          # Burst Altitude (m)
+        self.burst_rad = 1.89                                           # Burst Radius (m)
+        self.para_rad = 0.5                                             # Parachute Radius (m)
+        self.para_drag_coeff = 0.47                                     # Parachute Drag Coefficient
+        self.status = "Ascent"                                          # Status Code
 
     def balloon_dynamics(self, x, t):
         h, vel = x
 
         # Launch
-        V0 = self._rad2vol(self.rad)                                # Launch Volume
-        Mg = self._mass(self.Pg, V0)                                # Mass of Gas
-        Mtot = self.payload + self.balloon + Mg                     # Total Mass (Payload + Balloon + Gas)
+        V0 = self._rad2vol(self.rad)                                    # Launch Volume
+        Mg = self._mass(self.Pg, V0)                                    # Mass of Gas
+        Mtot = self.payload + self.balloon + Mg                         # Total Mass (Payload + Balloon + Gas)
 
         # Dynamic
-        h_geo = self._geopotential_altitude(self.rEarth, h)         # Geometric Altitude
-        rho_a = self._atmospheric_density(h_geo)                    # Air / Fluid Density @ Altitude
-        V_a = (self.p0 / rho_a) * V0                                # Balloon Volume Update (m^3)
-        rad_a = self._vol2rad(V_a)                                  # Balloon Radius Update (m)
+        h_geo = self._geopotential_altitude(self.rEarth, h)             # Geometric Altitude
+        rho_a = self._atmospheric_density(h_geo)                        # Air / Fluid Density @ Altitude
+        V_a = (self.p0 / rho_a) * V0                                    # Balloon Volume Update (m^3)
+        rad_a = self._vol2rad(V_a)                                      # Balloon Radius Update (m)
 
         # Forces
-        G = self._gravity_gradient(self.rEarth, h)                  # Gravity @ Altitude
-        Fp = 0.0                                                    # Parachute Drag Force
+        G = self._gravity_gradient(self.rEarth, h)                      # Gravity @ Altitude
+        Fp = 0.0                                                        # Parachute Drag Force
 
-        if rad_a >= self.burst_rad: self.status = "Descending"
+        if rad_a >= self.burst_rad: self.status = "Descent"
 
-        if self.status == "Descending":
+        if self.status == "Descent":
             V_a = 0.0
             rad_a = 0.0
             Mtot = self.payload + self.balloon
-            Fp = -self._drag(self.para_rad, self.para_drag_coeff, rho_a, vel)
+            Fp = self._drag(self.para_rad, self.para_drag_coeff, rho_a, vel)
 
-        Fb = self._bouyancy(rho_a, G, V_a)                          # Bouyancy (Archimedes' Principle)
-        Fd = self._drag(rad_a, self.drag_coeff, rho_a, vel)         # Balloon Drag Force
+        Fb = self._bouyancy(rho_a, G, V_a)                              # Bouyancy (Archimedes' Principle)
+        Fd = self._drag(rad_a, self.drag_coeff, rho_a, vel)             # Balloon Drag Force
 
-        Fn = self._net_force(Fb, Mtot, G) - (Fd + Fp)               # Net Force
-        accel = self._acceleration(Fn, Mtot)                        # Acceleration (Newtons 2nd Law)
+        Fn = self._net_force(Fb, Mtot, G) - (Fd - Fp)                   # Net Force
+        accel = self._acceleration(Fn, Mtot)                            # Acceleration (Newtons 2nd Law)
 
         Vt = self._terminal_velocity(Mtot, G, rho_a, self.para_rad, self.para_drag_coeff)
 
@@ -121,7 +120,7 @@ class ODESolver:
         self.x = x_start
         self.t = t_start
 
-    def compute(self, dt, solver="RK4"):
+    def compute(self, dt, solver="MIDPOINT"):
         x0, x1, T = [self.x[0]], [self.x[1]], [self.t] # Init
 
         while self.x[0] > 0.0:
