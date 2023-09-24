@@ -33,9 +33,10 @@ Parameter | Description
 `vel` | Velocity (m/s)
 
 #### :books: References
-[HAB Atmospheric Database](https://www.iastatedigitalpress.com/ahac/article/8346/galley/7933/view/)
-[USM School of Aerospace](https://iopscience.iop.org/article/10.1088/1742-6596/1005/1/012048/pdf)
-[US Standard Atmosphere, 1976](https://www.ngdc.noaa.gov/stp/space-weather/online-publications/miscellaneous/us-standard-atmosphere-1976/us-standard-atmosphere_st76-1562_noaa.pdf)
+[HAB Atmospheric Database](https://www.iastatedigitalpress.com/ahac/article/8346/galley/7933/view/)<br>
+[USM School of Aerospace](https://iopscience.iop.org/article/10.1088/1742-6596/1005/1/012048/pdf)<br>
+[US Standard Atmosphere, 1976](https://www.ngdc.noaa.gov/stp/space-weather/online-publications/miscellaneous/us-standard-atmosphere-1976/us-standard-atmosphere_st76-1562_noaa.pdf)<br>
+[NASA: Scientific balloon capabilities and instrumentation](https://ntrs.nasa.gov/api/citations/20150023509/downloads/20150023509.pdf)
 
 ### Requirements
 - Both Linux and Windows are supported. Linux is recommended for performance and compatibility reasons.

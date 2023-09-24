@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import libtools
-
 import numpy as np
 
 class Flight():
@@ -24,7 +23,7 @@ class Flight():
         self.burst_rad = 1.89                                           # Burst Radius (m)
         self.para_rad = 0.5                                             # Parachute Radius (m)
         self.para_Cd = 0.47                                             # Parachute Drag Coefficient
-        self.status = 1                                                 # Status Code
+        self.status = 1                                                 # Status Code (Ascent = 1, Descent = 0)
 
     def balloon_dynamics(self, x, t):
         alt, vel = x
@@ -55,10 +54,10 @@ class Flight():
         Fn = self._net_force(Fb, Mtot, G) - (Fd - Fp)                   # Net Force
         accel = self._acceleration(Fn, Mtot)                            # Acceleration (Newtons 2nd Law)
 
-        Tv = self._terminal_velocity(Mtot, G, rho_a, self.para_rad, self.para_Cd)
+        Tv = self._terminal_velocity(Mtot, G, rho_a, self._area(self.para_rad), self.para_Cd)
 
         hrs, mins, secs = libtools.sec2time(t)
-        print("Status: %i | Time: %ih:%im:%.1fs | Altitude: %.2fm | Vel: %.2fm/s | Radius: %.2fm | Volume: %.2fm | Terminal Vel: %.2fm/s" % (self.status, hrs, mins, secs, geo_alt, vel, rad, Vb, Tv))
+        print(f"Status: %i | Time: {hrs}h:{mins}m:{secs:.1f}s | Altitude: {geo_alt:.3f}m | Vel: {vel:.3f}m/s | Radius: {rad}m")
 
         dh_dt = vel
         dv_dt = accel
@@ -106,8 +105,8 @@ class Flight():
 
         return P / (R * T)
     
-    def _terminal_velocity(self, m, g, p, r, Cd):
-        return np.sqrt((2*m*g) / (p*self._area(r)*Cd))
+    def _terminal_velocity(self, m, g, p, Ac, Cd):
+        return np.sqrt((2 * m * g) / (p * Ac * Cd))
 
 class ODESolver:
     def __init__(self, f):
