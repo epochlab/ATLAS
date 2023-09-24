@@ -41,9 +41,7 @@ class Flight():
         Vb = (self.p0 / rho_a) * V0                                     # Balloon Volume Update (m^3)
         rad = self._vol2rad(Vb)                                         # Balloon Radius Update (m)
 
-        # Forces
-        G = self._gravity_gradient(self.rEarth, geo_alt)                # Gravity @ Altitude
-        
+        # Forces       
         if rad >= self.burst_rad: self.status = 0
         if self.status == 0:
             Vb = 0.0
@@ -51,6 +49,7 @@ class Flight():
             Mtot = self.payload + self.balloon
             Fp = self._drag(self.para_rad, self.para_Cd, self._area(self.para_rad), rho_a, vel)
 
+        G = self._gravity_gradient(self.rEarth, geo_alt)                # Gravity @ Altitude
         Fb = self._bouyancy(rho_a, G, Vb)                               # Bouyancy (Archimedes' Principle)
         Fd = self._drag(rad, self.Cd, self._area(rad), rho_a, vel)      # Atmospheric Drag Force
         Fn = self._net_force(Fb, Mtot, G) - (Fd - Fp)                   # Net Force
@@ -59,7 +58,7 @@ class Flight():
         Tv = self._terminal_velocity(Mtot, G, rho_a, self.para_rad, self.para_Cd)
 
         hrs, mins, secs = libtools.sec2time(t)
-        print("Status: %i | Time: %ih:%im:%.1fs | Altitude: %.2fm | Vel: %.2fm/s | Radius: %.2fm | Volume: %.2fm | Terminal Vel: %.2fm/s" % (self.status, hrs, mins, secs, geo_alt, vel, rad, Vb, Tv))  
+        print("Status: %i | Time: %ih:%im:%.1fs | Altitude: %.2fm | Vel: %.2fm/s | Radius: %.2fm | Volume: %.2fm | Terminal Vel: %.2fm/s" % (self.status, hrs, mins, secs, geo_alt, vel, rad, Vb, Tv))
 
         dh_dt = vel
         dv_dt = accel
