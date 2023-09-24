@@ -17,11 +17,11 @@ Parameter | Description
 `Ac` | Cross sectional area (m^2)
 `Cd` | Coefficient of drag
 `Fd` | Atmospheric drag
-`Fl` | Lifting force of gas (N,lb)
+`Fl` | Lifting force of gas (N, lb)
 `Fb` | Bouyancy force
 `G` | Gravity (m/s^2)
 `Mg` | Mass of gas (kg)
-`Mtot` | Total mass: inc. payload, balloon and ballast masses (kg)
+`Mtot` | Total mass inc. payload, balloon and ballast masses (kg)
 `Pa` | Mass density of air (kg/m^3)
 `Pg` | Mass density of gas (kg/m^3)
 `rad` | Balloon radius

@@ -5,56 +5,56 @@ import numpy as np
 
 class Flight():
     def __init__(self):
-        self.p0 = 1.225                                                 # Air Density | Sea level (kg/m^3)
-        self.Pg = 0.1785                                                # Gas Density | Helium (kg/m^3)
+        self.p0 = 1.225                                                                                 # Air Density | Sea level (kg/m^3)
+        self.Pg = 0.1785                                                                                # Gas Density | Helium (kg/m^3)
 
         # Environment
-        self.rEarth = 6.378e+06                                         # Earth Radius (m)
-        self.g0 = 9.80665                                               # Gravity @ Surface - (m/s^2)
-        self.atmos = libtools.load_config('config.yml')['us-standard']  # Atmosphere Profile
+        self.rEarth = 6.378e+06                                                                         # Earth Radius (m)
+        self.g0 = 9.80665                                                                               # Gravity @ Surface - (m/s^2)
+        self.atmos = libtools.load_config('profiles.yml')['us-standard']                                # Atmosphere Profile
 
         # Radiosonde Profile
-        self.payload = 0.625                                            # Payload Mass (kg)
-        self.parachute = 0.1                                            # Parachute Mass (kg)
-        self.balloon = 0.3                                              # Balloon Mass (kg)
-        self.rad = 0.615                                                # Launch Radius (m)
-        self.Cd = 0.47                                                  # Drag Coefficient
-        self.burst_alt = 24700                                          # Burst Altitude (m)
-        self.burst_rad = 1.89                                           # Burst Radius (m)
-        self.para_rad = 0.5                                             # Parachute Radius (m)
-        self.para_Cd = 0.47                                             # Parachute Drag Coefficient
-        self.status = 1                                                 # Status Code (Ascent = 1, Descent = 0)
+        self.payload = 0.625                                                                            # Payload Mass (kg)
+        self.parachute = 0.1                                                                            # Parachute Mass (kg)
+        self.balloon = 0.3                                                                              # Balloon Mass (kg)
+        self.rad = 0.615                                                                                # Launch Radius (m)
+        self.Cd = 0.47                                                                                  # Drag Coefficient
+        self.burst_alt = 24700                                                                          # Burst Altitude (m)
+        self.burst_rad = 1.89                                                                           # Burst Radius (m)
+        self.para_rad = 0.5                                                                             # Parachute Radius (m)
+        self.para_Cd = 0.47                                                                             # Parachute Drag Coefficient
+        self.status = 1                                                                                 # Status Code (Ascent = 1, Descent = 0)
 
     def balloon_dynamics(self, x, t):
         alt, vel = x
 
         # Launch
-        V0 = self._rad2vol(self.rad)                                    # Launch Volume
-        Mg = self._mass(self.Pg, V0)                                    # Mass of Gas
-        Mtot = self.payload + self.balloon + Mg                         # Total Mass (Payload + Parachute + Balloon + Gas)
-        Fp = 0.0                                                        # Parachute Force
+        V0 = self._rad2vol(self.rad)                                                                    # Launch Volume
+        Mg = self._mass(self.Pg, V0)                                                                    # Mass of Gas
+        Mtot = self.payload + self.balloon + Mg                                                         # Total Mass (Payload + Parachute + Balloon + Gas)
+        Fp = 0.0                                                                                        # Parachute Force (Ascent)
 
         # Dynamic
-        geo_alt = self._geopotential_altitude(self.rEarth, alt)         # Geometric Altitude
-        rho_a = self._atmospheric_density(geo_alt)                      # Air / Fluid Density @ Altitude
-        Vb = (self.p0 / rho_a) * V0                                     # Balloon Volume Update (m^3)
-        rad = self._vol2rad(Vb)                                         # Balloon Radius Update (m)
+        geo_alt = self._geopotential_altitude(self.rEarth, alt)                                         # Geometric Altitude
+        rho_a = self._atmospheric_density(geo_alt)                                                      # Air / Fluid Density @ Altitude
+        Vb = (self.p0 / rho_a) * V0                                                                     # Balloon Volume Update (m^3)
+        rad = self._vol2rad(Vb)                                                                         # Balloon Radius Update (m)
 
         # Forces       
         if rad >= self.burst_rad: self.status = 0
-        if self.status == 0:
+        if self.status == 0:                                                                            # Descent Profile
             Vb = 0.0
             rad = 0.0
             Mtot = self.payload + self.balloon
-            Fp = self._drag(self.para_rad, self.para_Cd, self._area(self.para_rad), rho_a, vel)
+            Fp = self._drag(self.para_rad, self.para_Cd, self._area(self.para_rad), rho_a, vel)         # Parachute Drag
 
-        G = self._gravity_gradient(self.rEarth, geo_alt)                # Gravity @ Altitude
-        Fb = self._bouyancy(rho_a, G, Vb)                               # Bouyancy (Archimedes' Principle)
-        Fd = self._drag(rad, self.Cd, self._area(rad), rho_a, vel)      # Atmospheric Drag Force
-        Fn = self._net_force(Fb, Mtot, G) - (Fd - Fp)                   # Net Force
-        accel = self._acceleration(Fn, Mtot)                            # Acceleration (Newtons 2nd Law)
+        G = self._gravity_gradient(self.rEarth, geo_alt)                                                # Gravity @ Altitude
+        Fb = self._bouyancy(rho_a, G, Vb)                                                               # Bouyancy (Archimedes' Principle)
+        Fd = self._drag(rad, self.Cd, self._area(rad), rho_a, vel)                                      # Atmospheric Drag Force
+        Fn = self._net_force(Fb, Mtot, G) - (Fd - Fp)                                                   # Net Force
+        accel = self._acceleration(Fn, Mtot)                                                            # Acceleration (Newtons 2nd Law)
 
-        Tv = self._terminal_velocity(Mtot, G, rho_a, self._area(self.para_rad), self.para_Cd)
+        Tv = self._terminal_velocity(Mtot, G, rho_a, self._area(self.para_rad), self.para_Cd)           # Terminal Velocity
 
         hrs, mins, secs = libtools.sec2time(t)
         print(f"Status: %i | Time: {hrs}h:{mins}m:{secs:.1f}s | Altitude: {geo_alt:.3f}m | Vel: {vel:.3f}m/s | Radius: {rad}m")
