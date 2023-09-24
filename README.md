@@ -37,6 +37,7 @@ Parameter | Description
 [USM School of Aerospace](https://iopscience.iop.org/article/10.1088/1742-6596/1005/1/012048/pdf)<br>
 [US Standard Atmosphere, 1976](https://www.ngdc.noaa.gov/stp/space-weather/online-publications/miscellaneous/us-standard-atmosphere-1976/us-standard-atmosphere_st76-1562_noaa.pdf)<br>
 [NASA: Scientific balloon capabilities and instrumentation](https://ntrs.nasa.gov/api/citations/20150023509/downloads/20150023509.pdf)
+[Overlook Horizon HAB](https://www.overlookhorizon.com/how-to-launch-weather-balloons/)
 
 ### Requirements
 - Both Linux and Windows are supported. Linux is recommended for performance and compatibility reasons.

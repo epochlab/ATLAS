@@ -14,15 +14,18 @@ class Flight():
         self.atmos = libtools.load_config('profiles.yml')['us-standard']                                # Atmosphere Profile
 
         # Radiosonde Profile
-        self.payload = 0.625                                                                            # Payload Mass (kg)
-        self.parachute = 0.1                                                                            # Parachute Mass (kg)
+        self.payload = 0.624                                                                            # Payload Mass (kg)
+
         self.balloon = 0.3                                                                              # Balloon Mass (kg)
         self.rad = 0.615                                                                                # Launch Radius (m)
         self.Cd = 0.47                                                                                  # Drag Coefficient
         self.burst_alt = 24700                                                                          # Burst Altitude (m)
         self.burst_rad = 1.89                                                                           # Burst Radius (m)
-        self.para_rad = 0.5                                                                             # Parachute Radius (m)
+
+        self.parachute = 0.046                                                                          # Parachute Mass (kg)
+        self.para_rad = 1.0                                                                             # Parachute Radius (m)
         self.para_Cd = 0.47                                                                             # Parachute Drag Coefficient
+
         self.status = 1                                                                                 # Status Code (Ascent = 1, Descent = 0)
 
     def balloon_dynamics(self, x, t):
@@ -31,7 +34,7 @@ class Flight():
         # Launch
         V0 = self._rad2vol(self.rad)                                                                    # Launch Volume
         Mg = self._mass(self.Pg, V0)                                                                    # Mass of Gas
-        Mtot = self.payload + self.balloon + Mg                                                         # Total Mass (Payload + Parachute + Balloon + Gas)
+        Mtot = self.payload + self.parachute + self.balloon + Mg                                        # Total Mass (Payload + Parachute + Balloon + Gas)
         Fp = 0.0                                                                                        # Parachute Force (Ascent)
 
         # Dynamic
@@ -57,7 +60,7 @@ class Flight():
         Tv = self._terminal_velocity(Mtot, G, rho_a, self._area(self.para_rad), self.para_Cd)           # Terminal Velocity
 
         hrs, mins, secs = libtools.sec2time(t)
-        print(f"Status: %i | Time: {hrs}h:{mins}m:{secs:.1f}s | Altitude: {geo_alt:.3f}m | Vel: {vel:.3f}m/s | Radius: {rad}m")
+        print(f"Status: {self.status} | Time: {hrs}h:{mins}m:{secs:.1f}s | Altitude: {geo_alt:.3f}m | Vel: {vel:.3f}m/s | Radius: {rad}m")
 
         dh_dt = vel
         dv_dt = accel
