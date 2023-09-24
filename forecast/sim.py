@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-import engine
+import engine, device
 
 def main():
-    HAB = engine.Flight()
+    HAB = device.Radiosonde()
     solver = engine.ODESolver(f=HAB.balloon_dynamics)
 
     x0 = [0.1, 0.0] # h=0m, v=0m/s
