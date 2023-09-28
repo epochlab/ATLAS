@@ -28,7 +28,7 @@ class Radiosonde():
 
         self.status = 1                                                                                 # Status Code (Ascent = 1, Descent = 0)
 
-    def balloon_dynamics(self, x, t):
+    def dynamics(self, x, t):
         alt, vel = x
 
         # Launch

@@ -4,7 +4,7 @@ import engine, device
 
 def main():
     HAB = device.Radiosonde()
-    solver = engine.ODESolver(f=HAB.balloon_dynamics)
+    solver = engine.ODESolver(f=HAB.dynamics)
 
     x0 = [0.1, 0.0] # h=0m, v=0m/s
     dt = 0.1  # Time-step (0.001 = ms)
