@@ -15,30 +15,35 @@ from tqdm import tqdm
 # &var_VGRD=on (V-Component of Wind) *
 # &all_lev=on (All levels) *
 
-dataset = "gfs_0p25"
-date = 20230928
-parameter = "UGRD"
-levels = "100_m_above_ground"
+# Needs saving 
 
-N = 0
-samples = np.linspace(0,N,N+1, dtype=int)
+def pull(dataset, samples, timestamp, para, level):
+    OUTDIR = f"NOAA/data/{timestamp}"
+    if not os.path.exists(OUTDIR):
+        os.makedirs(OUTDIR)
 
-OUTDIR = f"NOAA/data/{date}"
-if not os.path.exists(OUTDIR):
-    os.makedirs(OUTDIR)
-
-for i in tqdm(samples):
-    window = f"{i:03}"
-    file = f"gfs.t12z.pgrb2.0p25.f{window}"
-
-    url = f"https://nomads.ncep.noaa.gov/cgi-bin/filter_{dataset}.pl?dir=%2Fgfs.{date}%2F12%2Fatmos&file={file}&var_{parameter}=on&lev_{levels}=on"
-
-    response = requests.get(url)
-    if response.status_code==200:
-        content = response.content
-        file_path = f"{OUTDIR}/{file}"
-
-        with open(file_path, 'wb') as file:
-            file.write(content)
+    t_range = np.linspace(0,samples,samples+1, dtype=int)
+    for i in t_range:
+        file = f"gfs.t12z.pgrb2.0p25.f{i:03}"
+        url = f"https://nomads.ncep.noaa.gov/cgi-bin/filter_{dataset}.pl?dir=%2Fgfs.{timestamp}%2F12%2Fatmos&file={file}&var_{para}=on&{level}=on"
         
+        # Wait for 3secs - NOAA compliance
         time.sleep(3)
+        response = requests.get(url)
+        if response.status_code==200:
+            content = response.content
+            file_path = f"{OUTDIR}/{para}.{file}"
+
+            with open(file_path, 'wb') as file:
+                file.write(content)
+        else:
+            print("Error connecting to NOAA library.")
+
+ds = "gfs_0p25"
+date = 20230928
+p_list = ["GUST","UGRD","VGRD"]
+l_list = ["all_lev"]
+
+for parameter in tqdm(p_list):
+    for level in l_list:
+        pull(ds, 0, date, parameter, level)
