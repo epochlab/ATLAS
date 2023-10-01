@@ -15,10 +15,8 @@ from tqdm import tqdm
 # &var_VGRD=on (V-Component of Wind) *
 # &all_lev=on (All levels) *
 
-# Needs saving 
-
 def pull(dataset, samples, timestamp, para, level):
-    OUTDIR = f"NOAA/data/{timestamp}"
+    OUTDIR = f"NOAA/data/{timestamp}/{para}"
     if not os.path.exists(OUTDIR):
         os.makedirs(OUTDIR)
 
@@ -39,11 +37,14 @@ def pull(dataset, samples, timestamp, para, level):
         else:
             print("Error connecting to NOAA library.")
 
-ds = "gfs_0p25"
-date = 20230928
-p_list = ["GUST","UGRD","VGRD"]
-l_list = ["all_lev"]
+def main()
+    ds = "gfs_0p25"
+    date = 20230928
+    p_list = ["GUST", "UGRD", "VGRD"]
+    levels = ["all_lev", "lev_10_m_above_ground", "lev_10_m_above_ground"]
 
-for parameter in tqdm(p_list):
-    for level in l_list:
-        pull(ds, 0, date, parameter, level)
+    for pid, parameter in tqdm(enumerate(p_list)):
+            pull(ds, 0, date, parameter, levels[pid])
+
+if __name__ == "__main__":
+    main()
